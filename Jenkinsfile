@@ -24,12 +24,6 @@ pipeline{
             )
             }
         }
-        stage('Clean Workspace') {
-            steps {
-               cleanWs()
-            }
-        }
-
          stage('Unit Test maven'){
          
          when { expression {  params.action == 'create' } }
@@ -117,4 +111,3 @@ pipeline{
         }      
     }
 }
-
