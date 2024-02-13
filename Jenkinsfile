@@ -49,7 +49,7 @@ pipeline{
                    mvn clean verify sonar:sonar \
                   -Dsonar.projectKey=sangram-project \
                   -Dsonar.projectName='sangram-project' \
-                  -Dsonar.host.url=http://47.128.224.170:9000 \
+                b -Dsonar.host.url='http://47.128.224.170:9000' \
                   -Dsonar.token=sqp_cc44a7a5106f42cff53c621c2ae8127526764b18
                   
                }
