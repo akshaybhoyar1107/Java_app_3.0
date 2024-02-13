@@ -2,6 +2,9 @@
 
 pipeline {
     agent any
+    environment {
+        SCANNER_HOME = tool 'sonar-scanner'
+    }
 
     parameters {
         choice(name: 'action', choices: 'create\ndelete', description: 'Choose create/Destroy')
@@ -41,13 +44,11 @@ pipeline {
 
         stage('Static code analysis: Sonarqube') {
             steps {
-                script {
-                    sh "mvn clean verify sonar:sonar \
-                        -Dsonar.projectKey=sangram-project \
-                        -Dsonar.projectName='sangram-project' \
-                        -Dsonar.host.url=http://47.128.224.170:9000 \
-                        -Dsonar.token=sqp_cc44a7a5106f42cff53c621c2ae8127526764b18"
+                withSonarQubeEnv('SonarQube-Server') {
+                    sh '''$SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=sangram-project2 \
+                    -Dsonar.projectKey=sangram-project2'''
                 }
+            
             }
         }
 
