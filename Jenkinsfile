@@ -1,82 +1,113 @@
-pipeline {
+@Library('my-shared-library') _
+
+pipeline{
+
     agent any
-    tools {
-        jdk 'jdk17'
-        nodejs 'node16'
+    //agent { label 'Demo' }
+
+    parameters{
+
+        choice(name: 'action', choices: 'create\ndelete', description: 'Choose create/Destroy')
+        string(name: 'ImageName', description: "name of the docker build", defaultValue: 'javapp')
+        string(name: 'ImageTag', description: "tag of the docker build", defaultValue: 'v1')
+        string(name: 'DockerHubUser', description: "name of the Application", defaultValue: 'praveensingam1994')
     }
-    environment {
-        SCANNER_HOME = tool 'sonar-scanner'
-    }
-    stages {
-        stage('clean workspace') {
-            steps {
-                cleanWs()
-            }
-        }
-        stage("Sonarqube Analysis") {
-            steps {
-                withSonarQubeEnv('SonarQube-Server') {
-                    sh '''$SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=sangram-project \
-                    -Dsonar.projectKey=sangram-project'''
-                }
-            }
-        }
-        stage("Quality Gate") {
-            steps {
-                script {
-                    waitForQualityGate abortPipeline: false, credentialsId: 'sonar-tocan'
-                }
-            }
-        }
-        stage('Install Dependencies') {
-            steps {
-                sh "npm install"
-            }
-        }
-        stage('TRIVY FS SCAN') {
-             steps {
-                 sh "trivy fs . > trivyfs.txt"
-             }
-         }
-         stage("Docker Build & Push"){
-             steps{
-                 script{
-                   withDockerRegistry(credentialsId: 'dockerhub', toolName: 'docker'){   
-                      sh "docker build -t youtube-clone ."
-                      sh "docker tag youtube-clone ashfaque9x/youtube-clone:latest "
-                      sh "docker push ashfaque9x/youtube-clone:latest "
-                    }
-                }
-            }
-        }
-        stage("TRIVY Image Scan"){
+
+    stages{
+         
+        stage('Git Checkout'){
+                    when { expression {  params.action == 'create' } }
             steps{
-                sh "trivy image ashfaque9x/youtube-clone:latest > trivyimage.txt" 
+            gitCheckout(
+                branch: "main",
+                url: "https://github.com/praveen1994dec/Java_app_3.0.git"
+            )
             }
         }
-        stage('Deploy to Kubernets'){
+         stage('Unit Test maven'){
+         
+         when { expression {  params.action == 'create' } }
+
             steps{
-                script{
-                    dir('Kubernetes') {
-                      withKubeConfig(caCertificate: '', clusterName: '', contextName: '', credentialsId: 'kubernetes', namespace: '', restrictKubeConfigAccess: false, serverUrl: '') {
-                      sh 'kubectl delete --all pods'
-                      sh 'kubectl apply -f deployment.yml'
-                      sh 'kubectl apply -f service.yml'
-                      }   
-                    }
-                }
+               script{
+                   
+                   mvnTest()
+               }
             }
         }
-    }
-    post {
-     always {
-        emailext attachLog: true,
-            subject: "'${currentBuild.result}'",
-            body: "Project: ${env.JOB_NAME}<br/>" +
-                "Build Number: ${env.BUILD_NUMBER}<br/>" +
-                "URL: ${env.BUILD_URL}<br/>",
-            to: 'ashfaque.s510@gmail.com',                              
-            attachmentsPattern: 'trivyfs.txt,trivyimage.txt'
+         stage('Integration Test maven'){
+         when { expression {  params.action == 'create' } }
+            steps{
+               script{
+                   
+                   mvnIntegrationTest()
+               }
+            }
         }
+        stage('Static code analysis: Sonarqube'){
+         when { expression {  params.action == 'create' } }
+            steps{
+               script{
+                   
+                   def SonarQubecredentialsId = 'sonarqube-api'
+                   statiCodeAnalysis(SonarQubecredentialsId)
+               }
+            }
+       }
+       stage('Quality Gate Status Check : Sonarqube'){
+         when { expression {  params.action == 'create' } }
+            steps{
+               script{
+                   
+                   def SonarQubecredentialsId = 'sonarqube-api'
+                   QualityGateStatus(SonarQubecredentialsId)
+               }
+            }
+       }
+        stage('Maven Build : maven'){
+         when { expression {  params.action == 'create' } }
+            steps{
+               script{
+                   
+                   mvnBuild()
+               }
+            }
+        }
+        stage('Docker Image Build'){
+         when { expression {  params.action == 'create' } }
+            steps{
+               script{
+                   
+                   dockerBuild("${params.ImageName}","${params.ImageTag}","${params.DockerHubUser}")
+               }
+            }
+        }
+         stage('Docker Image Scan: trivy '){
+         when { expression {  params.action == 'create' } }
+            steps{
+               script{
+                   
+                   dockerImageScan("${params.ImageName}","${params.ImageTag}","${params.DockerHubUser}")
+               }
+            }
+        }
+        stage('Docker Image Push : DockerHub '){
+         when { expression {  params.action == 'create' } }
+            steps{
+               script{
+                   
+                   dockerImagePush("${params.ImageName}","${params.ImageTag}","${params.DockerHubUser}")
+               }
+            }
+        }   
+        stage('Docker Image Cleanup : DockerHub '){
+         when { expression {  params.action == 'create' } }
+            steps{
+               script{
+                   
+                   dockerImageCleanup("${params.ImageName}","${params.ImageTag}","${params.DockerHubUser}")
+               }
+            }
+        }      
     }
 }
