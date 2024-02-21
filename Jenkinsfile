@@ -76,7 +76,7 @@ pipeline {
             when { expression { params.action == 'create' } }
             steps {
                 script {
-                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${env.AWS_CREDENTIALS}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                   withCredentials([<object of type com.cloudbees.jenkins.plugins.awscredentials.AmazonWebServicesCredentialsBinding>]) {
                         sh 'aws s3 ls'
                         sh 'aws s3 cp /var/lib/jenkins/workspace/Demo/target/*.jar s3://s3-artifact-akshay/'
                     }
