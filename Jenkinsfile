@@ -72,18 +72,17 @@ pipeline {
             }
         }
 
-        stage('artifacts to s3') {
-            try {
-                // you need cloudbees aws credentials
-                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'push-artifact', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-                    sh "aws s3 ls"
-                    sh "aws s3 cp /var/lib/jenkins/workspace/Demo/target/*.jar s3://s3-artifact-akshay/"
+      stage('Artifacts to S3') {
+            when { expression { params.action == 'create' } }
+            steps {
+                script {
+                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${env.AWS_CREDENTIALS}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                        sh 'aws s3 ls'
+                        sh 'aws s3 cp /var/lib/jenkins/workspace/Demo/target/*.jar s3://s3-artifact-akshay/'
+                    }
                 }
-            } catch(err) {
-                echo "Error in sending artifacts to s3: ${err.message}"
             }
         }
-
         stage('Docker Image Build') {
             when { expression { params.action == 'create' } }
             steps {
