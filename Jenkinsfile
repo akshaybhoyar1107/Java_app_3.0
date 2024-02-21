@@ -1,12 +1,12 @@
 pipeline {
     agent any
-
+    
     environment {
-        AWS_CREDENTIALS = credentials('push-artifact')
+        AWS_CREDENTIALS = 'push-artifact'
     }
 
     parameters {
-        choice(name: 'action', choices: ['create', 'delete'], description: 'Choose create/Destroy')
+        choice(name: 'action', choices: 'create\ndelete', description: 'Choose create/Destroy')
         string(name: 'ImageName', description: "name of the docker build", defaultValue: 'javapp')
         string(name: 'ImageTag', description: "tag of the docker build", defaultValue: 'v1')
         string(name: 'DockerHubUser', description: "name of the Application", defaultValue: 'akshay8383')
@@ -71,8 +71,10 @@ pipeline {
             when { expression { params.action == 'create' } }
             steps {
                 script {
-                    sh "aws s3 ls"
-                    sh "aws s3 cp /var/lib/jenkins/workspace/Demo/target/*.jar s3://s3-artifact-akshay/"
+                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${env.AWS_CREDENTIALS}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                        sh 'aws s3 ls'
+                        sh 'aws s3 cp /var/lib/jenkins/workspace/Demo/target/*.jar s3://s3-artifact-akshay/'
+                    }
                 }
             }
         }
