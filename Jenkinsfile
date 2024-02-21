@@ -4,7 +4,9 @@ pipeline{
 
     agent any
     //agent { label 'Demo' }
-
+    tools {
+        Docker 'Docker'
+    }
     parameters{
 
         choice(name: 'action', choices: 'create\ndelete', description: 'Choose create/Destroy')
