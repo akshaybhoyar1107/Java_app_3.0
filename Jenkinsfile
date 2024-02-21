@@ -76,10 +76,7 @@ pipeline {
             when { expression { params.action == 'create' } }
             steps {
                 script {
-                   withCredentials([<object of type com.cloudbees.jenkins.plugins.awscredentials.AmazonWebServicesCredentialsBinding>]) {
-                        sh 'aws s3 ls'
-                        sh 'aws s3 cp /var/lib/jenkins/workspace/Demo/target/*.jar s3://s3-artifact-akshay/'
-                    }
+                   s3Upload consoleLogLevel: 'INFO', dontSetBuildResultOnFailure: false, dontWaitForConcurrentBuildCompletion: false, entries: [[bucket: 's3-artifact-akshay', excludedFile: '', flatten: false, gzipFiles: false, keepForever: false, managedArtifacts: false, noUploadOnFailure: false, selectedRegion: 'ap-southeast-1', showDirectlyInBrowser: false, sourceFile: '/var/lib/jenkins/workspace/Demo/target/*.jar', storageClass: 'STANDARD', uploadFromSlave: false, useServerSideEncryption: false]], pluginFailureResultConstraint: 'FAILURE', profileName: 'aws-s3-artifact', userMetadata: []
                 }
             }
         }
