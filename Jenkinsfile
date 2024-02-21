@@ -1,14 +1,12 @@
-@Library('my-shared-library') _
-
 pipeline {
     agent any
-    
-    tools {
-        dockerTool 'Docker'
+
+    environment {
+        AWS_CREDENTIALS = credentials('push-artifact')
     }
 
     parameters {
-        choice(name: 'action', choices: 'create\ndelete', description: 'Choose create/Destroy')
+        choice(name: 'action', choices: ['create', 'delete'], description: 'Choose create/Destroy')
         string(name: 'ImageName', description: "name of the docker build", defaultValue: 'javapp')
         string(name: 'ImageTag', description: "tag of the docker build", defaultValue: 'v1')
         string(name: 'DockerHubUser', description: "name of the Application", defaultValue: 'akshay8383')
@@ -18,10 +16,7 @@ pipeline {
         stage('Git Checkout') {
             when { expression { params.action == 'create' } }
             steps {
-                gitCheckout(
-                    branch: "main",
-                    url: "https://github.com/akshaybhoyar1107/Java_app_3.0.git"
-                )
+                git branch: 'main', url: 'https://github.com/akshaybhoyar1107/Java_app_3.0.git'
             }
         }
 
@@ -72,14 +67,16 @@ pipeline {
             }
         }
 
-      stage('Artifacts to S3') {
+        stage('Artifacts to S3') {
             when { expression { params.action == 'create' } }
             steps {
                 script {
-                   s3Upload consoleLogLevel: 'INFO', dontSetBuildResultOnFailure: false, dontWaitForConcurrentBuildCompletion: false, entries: [[bucket: 's3-artifact-akshay', excludedFile: '', flatten: false, gzipFiles: false, keepForever: false, managedArtifacts: false, noUploadOnFailure: false, selectedRegion: 'ap-southeast-1', showDirectlyInBrowser: false, sourceFile: '/var/lib/jenkins/workspace/Demo/target/*.jar', storageClass: 'STANDARD', uploadFromSlave: false, useServerSideEncryption: false]], pluginFailureResultConstraint: 'FAILURE', profileName: 'aws-s3-artifact', userMetadata: []
+                    sh "aws s3 ls"
+                    sh "aws s3 cp /var/lib/jenkins/workspace/Demo/target/*.jar s3://s3-artifact-akshay/"
                 }
             }
         }
+
         stage('Docker Image Build') {
             when { expression { params.action == 'create' } }
             steps {
